@@ -1,6 +1,8 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 export const APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbwFUY5Ul0lDDjINvqz14HBMZajncW6Y3prNCjfvQ3MxeuylCbTB3q_Bs6O-zwYKVb52/exec';
+  'https://script.google.com/macros/s/AKfycbyje6Fz0aa36DadeIGz23IgdrtIityReDqgczDgrBl2oo_Sahp-idolJezpTPCaEBfC/exec';
+// export const APPS_SCRIPT_URL =
+//   'https://script.google.com/macros/s/AKfycbwFUY5Ul0lDDjINvqz14HBMZajncW6Y3prNCjfvQ3MxeuylCbTB3q_Bs6O-zwYKVb52/exec';
 
 // Set to false to fetch from the live Google Apps Script endpoint
 export const USE_MOCK_DATA = false;
