@@ -15,6 +15,11 @@ function statusCfg(status) {
   return STATUS_CONFIG[status] || STATUS_CONFIG['Lead'];
 }
 
+// ─── Safe local date string: avoids UTC-shift bug ─────────────────────────────
+function toLocalDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr + 'T00:00:00');
@@ -59,7 +64,6 @@ function DayCell({ date, events, isCurrentMonth, isToday, isSelected, onClick, o
         ${isSelected ? 'ring-2 ring-inset ring-[#1a2744]' : ''}
       `}
     >
-      {/* Day number */}
       <div className="flex items-center justify-between mb-0.5">
         <span
           className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full leading-none
@@ -73,7 +77,6 @@ function DayCell({ date, events, isCurrentMonth, isToday, isSelected, onClick, o
         )}
       </div>
 
-      {/* Event chips */}
       <div className="flex flex-col gap-0.5">
         {shown.map((ev, i) => (
           <EventChip key={i} event={ev} onClick={onEventClick} />
@@ -95,7 +98,7 @@ function DayCell({ date, events, isCurrentMonth, isToday, isSelected, onClick, o
 function DayPanel({ date, events, onEventClick }) {
   if (!date) return null;
 
-  const dayLabel = formatDate(date.toISOString().split('T')[0]);
+  const dayLabel = formatDate(toLocalDateStr(date));
 
   return (
     <div className="border-t border-[#e0d9cc] bg-[#f5f0e8] px-6 py-5">
@@ -120,9 +123,8 @@ function DayPanel({ date, events, onEventClick }) {
               <button
                 key={i}
                 onClick={() => onEventClick(event)}
-                className={`text-left rounded-2xl bg-white border border-[#e0d9cc] overflow-hidden hover:shadow-md transition-all`}
+                className="text-left rounded-2xl bg-white border border-[#e0d9cc] overflow-hidden hover:shadow-md transition-all"
               >
-                {/* Status bar */}
                 <div className={`h-1 ${cfg.bar}`} />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
@@ -174,22 +176,18 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  // Build calendar grid
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrev = new Date(year, month, 0).getDate();
     const days = [];
 
-    // Prev month tail
     for (let i = firstDay - 1; i >= 0; i--) {
       days.push({ date: new Date(year, month - 1, daysInPrev - i), currentMonth: false });
     }
-    // Current month
     for (let d = 1; d <= daysInMonth; d++) {
       days.push({ date: new Date(year, month, d), currentMonth: true });
     }
-    // Next month head
     const remaining = 42 - days.length;
     for (let d = 1; d <= remaining; d++) {
       days.push({ date: new Date(year, month + 1, d), currentMonth: false });
@@ -197,7 +195,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
     return days;
   }, [year, month]);
 
-  // Map events by date string
   const eventsByDate = useMemo(() => {
     const map = {};
     events.forEach(ev => {
@@ -208,33 +205,30 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
     return map;
   }, [events]);
 
-  // Filtered events for list views
   const filteredEvents = useMemo(() => {
     if (filter === 'month') {
       const start = new Date(year, month, 1);
       const end = new Date(year, month + 1, 0, 23, 59, 59);
-      return events.filter(e => { const d = new Date(e.eventDate); return d >= start && d <= end; });
+      return events.filter(e => { const d = new Date(e.eventDate + 'T00:00:00'); return d >= start && d <= end; });
     }
     if (filter === 'upcoming') {
-      const todayStr = today.toISOString().split('T')[0];
+      const todayStr = toLocalDateStr(today);
       return events.filter(e => e.eventDate >= todayStr && e.status !== 'Cancelled').sort((a, b) => a.eventDate.localeCompare(b.eventDate));
     }
     return [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
   }, [events, filter, year, month]);
 
-  const selectedDateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : null;
+  const todayStr = toLocalDateStr(today);
+  const selectedDateStr = selectedDate ? toLocalDateStr(selectedDate) : null;
   const selectedEvents = selectedDateStr ? (eventsByDate[selectedDateStr] || []) : [];
 
-  const todayStr = today.toISOString().split('T')[0];
-
-  // Count for header
   const monthEventCount = Object.entries(eventsByDate)
     .filter(([k]) => k.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`))
     .reduce((s, [, v]) => s + v.length, 0);
 
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); }
-  function goToday()  { setViewDate(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(today); }
+  function goToday()   { setViewDate(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(today); }
 
   if (isLoading) {
     return (
@@ -250,7 +244,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
       {/* Calendar toolbar */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-[#e0d9cc]">
         <div className="flex items-center gap-3">
-          {/* Filter pills */}
           {['month', 'upcoming', 'all'].map(f => (
             <button
               key={f}
@@ -264,7 +257,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
           ))}
         </div>
 
-        {/* Month nav */}
         <div className="flex items-center gap-3">
           <button onClick={goToday} className="text-xs font-semibold text-[#1a2744] px-3 py-1.5 rounded-lg border border-[#e0d9cc] hover:bg-[#f5f0e8]">
             Today
@@ -296,7 +288,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
 
       {/* Calendar grid */}
       <div className="border-b border-[#e0d9cc]">
-        {/* Day headers */}
         <div className="grid grid-cols-7 bg-[#f5f0e8]">
           {DAYS.map(d => (
             <div key={d} className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest py-2.5 border-r border-[#e8e0d0] last:border-0">
@@ -305,21 +296,18 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
           ))}
         </div>
 
-        {/* Weeks */}
         <div className="grid grid-cols-7 border-l border-t border-[#e8e0d0]">
           {calendarDays.map(({ date, currentMonth }, i) => {
-            const key = date.toISOString().split('T')[0];
+            const key = toLocalDateStr(date);
             const dayEvents = eventsByDate[key] || [];
-            const isToday = key === todayStr;
-            const isSelected = key === selectedDateStr;
             return (
               <DayCell
                 key={i}
                 date={date}
                 events={dayEvents}
                 isCurrentMonth={currentMonth}
-                isToday={isToday}
-                isSelected={isSelected}
+                isToday={key === todayStr}
+                isSelected={key === selectedDateStr}
                 onClick={setSelectedDate}
                 onEventClick={onEventClick}
               />
