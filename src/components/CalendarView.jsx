@@ -302,7 +302,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
           {[
             { key: 'month',    label: 'Month View' },
             { key: 'upcoming', label: 'Upcoming' },
-            { key: 'all',      label: 'All Events' },
           ].map(f => (
             <button
               key={f.key}
@@ -336,9 +335,6 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
           )}
           {filter === 'upcoming' && (
             <span className="text-xs text-slate-400 font-medium">{filteredEvents.length} upcoming event{filteredEvents.length !== 1 ? 's' : ''}</span>
-          )}
-          {filter === 'all' && (
-            <span className="text-xs text-slate-400 font-medium">{filteredEvents.length} total event{filteredEvents.length !== 1 ? 's' : ''}</span>
           )}
         </div>
       </div>
@@ -382,8 +378,8 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
         </>
       )}
 
-      {/* Upcoming / All Events list view */}
-      {(filter === 'upcoming' || filter === 'all') && (
+      {/* Upcoming list view */}
+      {filter === 'upcoming' && (
         <EventList events={filteredEvents} onEventClick={onEventClick} />
       )}
     </div>
