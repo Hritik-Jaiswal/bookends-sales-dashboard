@@ -1,21 +1,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Users, MapPin, Calendar } from 'lucide-react';
 
-const STATUS_CONFIG = {
-  'Lead':              { bg: 'bg-slate-100',   text: 'text-slate-700',   bar: 'bg-slate-400',   dot: '#94a3b8' },
-  'Proposal Sent':     { bg: 'bg-orange-50',   text: 'text-orange-700',  bar: 'bg-orange-400',  dot: '#f97316' },
-  'Confirmed':         { bg: 'bg-blue-50',     text: 'text-blue-700',    bar: 'bg-blue-500',    dot: '#3b82f6' },
-  'Advance Received':  { bg: 'bg-emerald-50',  text: 'text-emerald-700', bar: 'bg-emerald-500', dot: '#10b981' },
-  'In Progress':       { bg: 'bg-purple-50',   text: 'text-purple-700',  bar: 'bg-purple-500',  dot: '#8b5cf6' },
-  'Completed':         { bg: 'bg-green-100',   text: 'text-green-800',   bar: 'bg-green-700',   dot: '#15803d' },
-  'Cancelled':         { bg: 'bg-red-50',      text: 'text-red-600',     bar: 'bg-red-400',     dot: '#ef4444' },
-};
-
-function statusCfg(status) {
-  return STATUS_CONFIG[status] || STATUS_CONFIG['Lead'];
-}
-
-// ─── Safe local date string: avoids UTC-shift bug ─────────────────────────────
+// ─── Safe local date string: avoids UTC-shift bug ────────────────────────────
 function toLocalDateStr(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -27,24 +13,39 @@ function formatDate(dateStr) {
 }
 
 function formatINR(amount) {
-  if (!amount && amount !== 0) return '—';
+  if (amount === null || amount === undefined) return 'Pending';
+  if (amount === 0) return '₹0';
   return '₹' + Number(amount).toLocaleString('en-IN');
+}
+
+function formatPax(pax) {
+  if (!pax && pax !== 0) return '';
+  const n = Number(pax);
+  if (isNaN(n)) return pax; // "ticketed event"
+  return `${n.toLocaleString('en-IN')} pax`;
+}
+
+function formatBalance(amount) {
+  if (amount === null || amount === undefined) return { label: 'Pending', cls: 'text-amber-600' };
+  if (amount === 0) return { label: 'Cleared', cls: 'text-slate-400' };
+  return { label: formatINR(amount), cls: 'text-red-600' };
 }
 
 // ─── Mini event chip inside a calendar cell ───────────────────────────────────
 function EventChip({ event, onClick }) {
-  const cfg = statusCfg(event.status);
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onClick(event); }}
-      className={`w-full text-left px-2 py-1 rounded-lg ${cfg.bg} ${cfg.text} hover:brightness-95 transition-all group`}
+      className="w-full text-left px-2 py-1 rounded-lg bg-[#eef2fa] text-[#1a2744] hover:bg-[#dde6f5] transition-all"
     >
       <div className="flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.dot }} />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#1a2744] opacity-40 flex-shrink-0" />
         <span className="font-semibold text-[11px] truncate leading-tight">{event.eventName}</span>
       </div>
-      <div className="flex items-center gap-2 mt-0.5 pl-3">
-        <span className="text-[10px] opacity-70 truncate">{event.location} · {event.pax} pax</span>
+      <div className="mt-0.5 pl-3">
+        <span className="text-[10px] text-slate-500 truncate block">
+          {event.location}{event.pax ? ` · ${formatPax(event.pax)}` : ''}
+        </span>
       </div>
     </button>
   );
@@ -65,11 +66,9 @@ function DayCell({ date, events, isCurrentMonth, isToday, isSelected, onClick, o
       `}
     >
       <div className="flex items-center justify-between mb-0.5">
-        <span
-          className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full leading-none
-            ${isToday ? 'bg-[#1a2744] text-white' : isCurrentMonth ? 'text-[#1a2744]' : 'text-slate-300'}
-          `}
-        >
+        <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full leading-none
+          ${isToday ? 'bg-[#1a2744] text-white' : isCurrentMonth ? 'text-[#1a2744]' : 'text-slate-300'}
+        `}>
           {date.getDate()}
         </span>
         {events.length > 0 && (
@@ -97,7 +96,6 @@ function DayCell({ date, events, isCurrentMonth, isToday, isSelected, onClick, o
 // ─── Selected day detail panel ────────────────────────────────────────────────
 function DayPanel({ date, events, onEventClick }) {
   if (!date) return null;
-
   const dayLabel = formatDate(toLocalDateStr(date));
 
   return (
@@ -117,40 +115,43 @@ function DayPanel({ date, events, onEventClick }) {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {events.map((event, i) => {
-            const cfg = statusCfg(event.status);
-            const eventValue = (event.pax || 0) * (event.pricePerPax || 0);
+            const numericPax = parseFloat(event.pax) || 0;
+            const eventValue = numericPax * (event.pricePerPax || 0);
+            const balance = formatBalance(event.balanceDue);
             return (
               <button
                 key={i}
                 onClick={() => onEventClick(event)}
                 className="text-left rounded-2xl bg-white border border-[#e0d9cc] overflow-hidden hover:shadow-md transition-all"
               >
-                <div className={`h-1 ${cfg.bar}`} />
+                <div className="h-1 bg-[#1a2744]" />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h4 className="font-bold text-[#1a2744] text-sm leading-tight">{event.eventName}</h4>
-                    <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                      {event.status}
-                    </span>
+                    {event.status && (
+                      <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#f5f0e8] text-slate-600">
+                        {event.status}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1"><MapPin size={10} />{event.location}</span>
-                    <span className="flex items-center gap-1"><Users size={10} />{event.pax} pax</span>
+                  <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                    <span className="flex items-center gap-1"><MapPin size={10} />{event.location || '—'}</span>
+                    {event.pax && <span className="flex items-center gap-1"><Users size={10} />{formatPax(event.pax)}</span>}
                   </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center bg-[#f5f0e8] rounded-xl p-2.5">
+                  <div className="grid grid-cols-3 gap-2 text-center bg-[#f5f0e8] rounded-xl p-2.5">
                     <div>
                       <p className="text-[9px] text-slate-400 uppercase tracking-wide">Value</p>
-                      <p className="text-xs font-bold text-[#1a2744]">{formatINR(eventValue)}</p>
+                      <p className="text-xs font-bold text-[#1a2744]">{eventValue > 0 ? formatINR(eventValue) : '—'}</p>
                     </div>
                     <div className="border-x border-[#e0d9cc]">
                       <p className="text-[9px] text-slate-400 uppercase tracking-wide">Advance</p>
-                      <p className="text-xs font-bold text-emerald-600">{formatINR(event.advanceReceived)}</p>
+                      <p className={`text-xs font-bold ${event.advanceReceived === null || event.advanceReceived === undefined ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {formatINR(event.advanceReceived)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-[9px] text-slate-400 uppercase tracking-wide">Balance</p>
-                      <p className={`text-xs font-bold ${(event.balanceDue || 0) > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                        {(event.balanceDue || 0) > 0 ? formatINR(event.balanceDue) : 'Cleared'}
-                      </p>
+                      <p className={`text-xs font-bold ${balance.cls}`}>{balance.label}</p>
                     </div>
                   </div>
                 </div>
@@ -163,7 +164,68 @@ function DayPanel({ date, events, onEventClick }) {
   );
 }
 
-// ─── Main CalendarView ─────────────────────────────────────────────────────────
+// ─── Event list for Upcoming / All Events views ───────────────────────────────
+function EventList({ events, onEventClick }) {
+  if (events.length === 0) {
+    return (
+      <div className="text-center py-16 text-slate-400 text-sm">No events found</div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-5">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {events.map((event, i) => {
+          const numericPax = parseFloat(event.pax) || 0;
+          const eventValue = numericPax * (event.pricePerPax || 0);
+          const balance = formatBalance(event.balanceDue);
+          return (
+            <button
+              key={i}
+              onClick={() => onEventClick(event)}
+              className="text-left rounded-2xl bg-white border border-[#e0d9cc] overflow-hidden hover:shadow-md transition-all"
+            >
+              <div className="h-1 bg-[#1a2744]" />
+              <div className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h4 className="font-bold text-[#1a2744] text-sm leading-tight">{event.eventName}</h4>
+                  {event.status && (
+                    <span className="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#f5f0e8] text-slate-600">
+                      {event.status}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#c9a84c] font-semibold mb-2">{formatDate(event.eventDate)}</p>
+                <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                  <span className="flex items-center gap-1"><MapPin size={10} />{event.location || '—'}</span>
+                  {event.pax && <span className="flex items-center gap-1"><Users size={10} />{formatPax(event.pax)}</span>}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center bg-[#f5f0e8] rounded-xl p-2.5">
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase tracking-wide">Value</p>
+                    <p className="text-xs font-bold text-[#1a2744]">{eventValue > 0 ? formatINR(eventValue) : '—'}</p>
+                  </div>
+                  <div className="border-x border-[#e0d9cc]">
+                    <p className="text-[9px] text-slate-400 uppercase tracking-wide">Advance</p>
+                    <p className={`text-xs font-bold ${event.advanceReceived === null || event.advanceReceived === undefined ? 'text-amber-600' : 'text-emerald-600'}`}>
+                      {formatINR(event.advanceReceived)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] text-slate-400 uppercase tracking-wide">Balance</p>
+                    <p className={`text-xs font-bold ${balance.cls}`}>{balance.label}</p>
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main CalendarView ────────────────────────────────────────────────────────
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -181,17 +243,10 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrev = new Date(year, month, 0).getDate();
     const days = [];
-
-    for (let i = firstDay - 1; i >= 0; i--) {
-      days.push({ date: new Date(year, month - 1, daysInPrev - i), currentMonth: false });
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push({ date: new Date(year, month, d), currentMonth: true });
-    }
+    for (let i = firstDay - 1; i >= 0; i--) days.push({ date: new Date(year, month - 1, daysInPrev - i), currentMonth: false });
+    for (let d = 1; d <= daysInMonth; d++) days.push({ date: new Date(year, month, d), currentMonth: true });
     const remaining = 42 - days.length;
-    for (let d = 1; d <= remaining; d++) {
-      days.push({ date: new Date(year, month + 1, d), currentMonth: false });
-    }
+    for (let d = 1; d <= remaining; d++) days.push({ date: new Date(year, month + 1, d), currentMonth: false });
     return days;
   }, [year, month]);
 
@@ -206,17 +261,17 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
   }, [events]);
 
   const filteredEvents = useMemo(() => {
-    if (filter === 'month') {
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 0, 23, 59, 59);
-      return events.filter(e => { const d = new Date(e.eventDate + 'T00:00:00'); return d >= start && d <= end; });
-    }
+    const todayStr = toLocalDateStr(today);
     if (filter === 'upcoming') {
-      const todayStr = toLocalDateStr(today);
-      return events.filter(e => e.eventDate >= todayStr && e.status !== 'Cancelled').sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+      return [...events]
+        .filter(e => e.eventDate >= todayStr)
+        .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
     }
-    return [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
-  }, [events, filter, year, month]);
+    if (filter === 'all') {
+      return [...events].sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+    }
+    return events; // 'month' — not used for list, calendar handles it
+  }, [events, filter]);
 
   const todayStr = toLocalDateStr(today);
   const selectedDateStr = selectedDate ? toLocalDateStr(selectedDate) : null;
@@ -228,7 +283,7 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
 
   function prevMonth() { setViewDate(new Date(year, month - 1, 1)); }
   function nextMonth() { setViewDate(new Date(year, month + 1, 1)); }
-  function goToday()   { setViewDate(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(today); }
+  function goToday()   { setViewDate(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedDate(today); setFilter('month'); }
 
   if (isLoading) {
     return (
@@ -241,18 +296,22 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
 
   return (
     <div>
-      {/* Calendar toolbar */}
+      {/* Toolbar */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-[#e0d9cc]">
-        <div className="flex items-center gap-3">
-          {['month', 'upcoming', 'all'].map(f => (
+        <div className="flex items-center gap-2">
+          {[
+            { key: 'month',    label: 'Month View' },
+            { key: 'upcoming', label: 'Upcoming' },
+            { key: 'all',      label: 'All Events' },
+          ].map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all ${
-                filter === f ? 'bg-[#1a2744] text-white shadow' : 'bg-[#f5f0e8] text-slate-600 hover:bg-[#e8e0d0]'
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                filter === f.key ? 'bg-[#1a2744] text-white shadow' : 'bg-[#f5f0e8] text-slate-600 hover:bg-[#e8e0d0]'
               }`}
             >
-              {f === 'month' ? 'Month View' : f === 'upcoming' ? 'Upcoming' : 'All Events'}
+              {f.label}
             </button>
           ))}
         </div>
@@ -261,68 +320,71 @@ export default function CalendarView({ events, isLoading, onEventClick }) {
           <button onClick={goToday} className="text-xs font-semibold text-[#1a2744] px-3 py-1.5 rounded-lg border border-[#e0d9cc] hover:bg-[#f5f0e8]">
             Today
           </button>
-          <div className="flex items-center gap-1">
-            <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f0e8] text-[#1a2744]">
-              <ChevronLeft size={16} />
-            </button>
-            <h2 className="text-base font-bold text-[#1a2744] w-44 text-center">
-              {MONTHS[month]} {year}
-            </h2>
-            <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f0e8] text-[#1a2744]">
-              <ChevronRight size={16} />
-            </button>
-          </div>
-          <span className="text-xs text-slate-400 font-medium">{monthEventCount} event{monthEventCount !== 1 ? 's' : ''} this month</span>
-        </div>
-      </div>
-
-      {/* Status legend */}
-      <div className="px-6 py-2.5 flex items-center gap-5 bg-[#faf8f4] border-b border-[#e0d9cc]">
-        {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'In Progress' && k !== 'Lead').map(([label, cfg]) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${cfg.bar}`} />
-            <span className="text-[11px] text-slate-500">{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="border-b border-[#e0d9cc]">
-        <div className="grid grid-cols-7 bg-[#f5f0e8]">
-          {DAYS.map(d => (
-            <div key={d} className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest py-2.5 border-r border-[#e8e0d0] last:border-0">
-              {d}
+          {filter === 'month' && (
+            <div className="flex items-center gap-1">
+              <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f0e8] text-[#1a2744]">
+                <ChevronLeft size={16} />
+              </button>
+              <h2 className="text-base font-bold text-[#1a2744] w-44 text-center">{MONTHS[month]} {year}</h2>
+              <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#f5f0e8] text-[#1a2744]">
+                <ChevronRight size={16} />
+              </button>
             </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 border-l border-t border-[#e8e0d0]">
-          {calendarDays.map(({ date, currentMonth }, i) => {
-            const key = toLocalDateStr(date);
-            const dayEvents = eventsByDate[key] || [];
-            return (
-              <DayCell
-                key={i}
-                date={date}
-                events={dayEvents}
-                isCurrentMonth={currentMonth}
-                isToday={key === todayStr}
-                isSelected={key === selectedDateStr}
-                onClick={setSelectedDate}
-                onEventClick={onEventClick}
-              />
-            );
-          })}
+          )}
+          {filter === 'month' && (
+            <span className="text-xs text-slate-400 font-medium">{monthEventCount} event{monthEventCount !== 1 ? 's' : ''} this month</span>
+          )}
+          {filter === 'upcoming' && (
+            <span className="text-xs text-slate-400 font-medium">{filteredEvents.length} upcoming event{filteredEvents.length !== 1 ? 's' : ''}</span>
+          )}
+          {filter === 'all' && (
+            <span className="text-xs text-slate-400 font-medium">{filteredEvents.length} total event{filteredEvents.length !== 1 ? 's' : ''}</span>
+          )}
         </div>
       </div>
 
-      {/* Selected day panel */}
-      {selectedDate && (
-        <DayPanel
-          date={selectedDate}
-          events={selectedEvents}
-          onEventClick={onEventClick}
-        />
+      {/* Month view */}
+      {filter === 'month' && (
+        <>
+          {/* Calendar grid */}
+          <div className="border-b border-[#e0d9cc]">
+            <div className="grid grid-cols-7 bg-[#f5f0e8]">
+              {DAYS.map(d => (
+                <div key={d} className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest py-2.5 border-r border-[#e8e0d0] last:border-0">
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 border-l border-t border-[#e8e0d0]">
+              {calendarDays.map(({ date, currentMonth }, i) => {
+                const key = toLocalDateStr(date);
+                const dayEvents = eventsByDate[key] || [];
+                return (
+                  <DayCell
+                    key={i}
+                    date={date}
+                    events={dayEvents}
+                    isCurrentMonth={currentMonth}
+                    isToday={key === todayStr}
+                    isSelected={key === selectedDateStr}
+                    onClick={setSelectedDate}
+                    onEventClick={onEventClick}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Selected day panel */}
+          {selectedDate && (
+            <DayPanel date={selectedDate} events={selectedEvents} onEventClick={onEventClick} />
+          )}
+        </>
+      )}
+
+      {/* Upcoming / All Events list view */}
+      {(filter === 'upcoming' || filter === 'all') && (
+        <EventList events={filteredEvents} onEventClick={onEventClick} />
       )}
     </div>
   );
