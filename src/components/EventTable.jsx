@@ -97,7 +97,7 @@ export default function EventTable({ events, onRowClick, isLoading }) {
 
   return (
     <div className="bg-white rounded-2xl border border-[#e0d9cc] overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#111b33] text-white">
@@ -105,7 +105,7 @@ export default function EventTable({ events, onRowClick, isLoading }) {
                 <th
                   key={col.key}
                   onClick={() => col.sortable && handleSort(col.key)}
-                  className={`px-5 py-4 text-left font-semibold text-xs uppercase tracking-wider whitespace-nowrap ${col.sortable ? 'cursor-pointer hover:bg-[#1a2744] select-none' : ''}`}
+                  className={`px-3 sm:px-5 py-3 sm:py-4 text-left font-semibold text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap ${col.sortable ? 'cursor-pointer hover:bg-[#1a2744] select-none' : ''}`}
                 >
                   <div className="flex items-center gap-1.5">
                     {col.label}
@@ -124,29 +124,29 @@ export default function EventTable({ events, onRowClick, isLoading }) {
                 <tr
                   key={idx}
                   onClick={() => onRowClick(event)}
-                  className="border-b border-[#f0ebe0] hover:bg-[#f5f0e8] transition-colors cursor-pointer"
+                  className="border-b border-[#f0ebe0] hover:bg-[#f5f0e8] active:bg-[#f0ebe0] transition-colors cursor-pointer"
                 >
-                  <td className="px-5 py-4 whitespace-nowrap font-medium text-[#1a2744]">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap font-medium text-[#1a2744]">
                     {formatDate(event.eventDate)}
                   </td>
-                  <td className="px-5 py-4 font-semibold text-[#1a2744]">{event.eventName}</td>
-                  <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{event.location || '—'}</td>
-                  <td className="px-5 py-4 text-slate-600 whitespace-nowrap">{formatPax(event.pax)}</td>
-                  <td className="px-5 py-4 text-slate-600 max-w-[180px]">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 font-semibold text-[#1a2744]">{event.eventName}</td>
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-600 whitespace-nowrap">{event.location || '—'}</td>
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-600 whitespace-nowrap">{formatPax(event.pax)}</td>
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-600 max-w-[140px] sm:max-w-[180px]">
                     <span className="truncate block">{event.status || '—'}</span>
                   </td>
-                  <td className="px-5 py-4 font-semibold text-[#1a2744] whitespace-nowrap">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 font-semibold text-[#1a2744] whitespace-nowrap">
                     {eventValue > 0 ? formatINR(eventValue) : '—'}
                   </td>
-                  <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 text-slate-600 whitespace-nowrap">
                     {event.pricePerPax === null || event.pricePerPax === undefined ? 'Pending' : formatINR(event.pricePerPax)}
                   </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap">
                     <span className={event.advanceReceived === null || event.advanceReceived === undefined ? 'text-amber-600 font-semibold' : 'text-emerald-700 font-medium'}>
                       {formatINR(event.advanceReceived)}
                     </span>
                   </td>
-                  <td className="px-5 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-5 py-3 sm:py-4 whitespace-nowrap">
                     <span className={balance.cls}>{balance.label}</span>
                   </td>
                 </tr>
@@ -155,14 +155,14 @@ export default function EventTable({ events, onRowClick, isLoading }) {
           </tbody>
           <tfoot>
             <tr className="bg-[#f5f0e8] border-t-2 border-[#e0d9cc]">
-              <td colSpan={4} className="px-5 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <td colSpan={4} className="px-3 sm:px-5 py-3 sm:py-3.5 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                 Totals ({sorted.length} events)
               </td>
               <td />
-              <td className="px-5 py-3.5 font-bold text-[#1a2744] text-sm">{formatINR(totalValue)}</td>
+              <td className="px-3 sm:px-5 py-3 sm:py-3.5 font-bold text-[#1a2744] text-sm whitespace-nowrap">{formatINR(totalValue)}</td>
               <td />
-              <td className="px-5 py-3.5 font-bold text-emerald-700 text-sm">{formatINR(totalAdvance)}</td>
-              <td className="px-5 py-3.5 font-bold text-red-600 text-sm">{formatINR(totalBalance)}</td>
+              <td className="px-3 sm:px-5 py-3 sm:py-3.5 font-bold text-emerald-700 text-sm whitespace-nowrap">{formatINR(totalAdvance)}</td>
+              <td className="px-3 sm:px-5 py-3 sm:py-3.5 font-bold text-red-600 text-sm whitespace-nowrap">{formatINR(totalBalance)}</td>
             </tr>
           </tfoot>
         </table>

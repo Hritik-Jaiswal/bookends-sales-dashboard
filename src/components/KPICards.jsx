@@ -10,14 +10,15 @@ function fmt(amount) {
 
 function KPICard({ icon: Icon, label, value, subLabel, accent, iconBg }) {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[#e0d9cc] shadow-sm flex items-start justify-between gap-4">
-      <div>
-        <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider">{label}</p>
-        <p className="text-3xl font-bold mt-1.5 leading-none" style={{ color: accent }}>{value}</p>
-        {subLabel && <p className="text-slate-400 text-xs mt-2 leading-snug max-w-[180px]">{subLabel}</p>}
+    <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-[#e0d9cc] shadow-sm flex items-start justify-between gap-2 sm:gap-4">
+      <div className="min-w-0">
+        <p className="text-slate-500 text-[10px] sm:text-xs font-semibold uppercase tracking-wider truncate">{label}</p>
+        <p className="text-xl sm:text-3xl font-bold mt-1 sm:mt-1.5 leading-none" style={{ color: accent }}>{value}</p>
+        {subLabel && <p className="text-slate-400 text-[10px] sm:text-xs mt-1.5 sm:mt-2 leading-snug line-clamp-2 sm:line-clamp-none max-w-[180px]">{subLabel}</p>}
       </div>
-      <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconBg }}>
-        <Icon size={20} style={{ color: accent }} strokeWidth={2} />
+      <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: iconBg }}>
+        <Icon size={16} className="sm:hidden" style={{ color: accent }} strokeWidth={2} />
+        <Icon size={20} className="hidden sm:block" style={{ color: accent }} strokeWidth={2} />
       </div>
     </div>
   );
@@ -42,7 +43,7 @@ export default function KPICards({ events }) {
   const outstanding  = events.reduce((s, e) => s + (e.balanceDue ?? 0), 0);
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <KPICard icon={Calendar} label="Today's Events" value={todayEvents.length}
         subLabel={todayEvents.length ? todayEvents.map(e => e.eventName).join(', ') : 'No events today'}
         accent="#1a2744" iconBg="#e8f0fe" />
